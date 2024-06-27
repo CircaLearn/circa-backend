@@ -2,14 +2,25 @@ from transformers import AutoTokenizer, AutoModel
 import torch
 import torch.nn.functional as F
 
-### From all-MiniLM-L6-v2 HuggingFace Page Example Code
 ### https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
+# Load tokenizer and model from HuggingFace Hub
+tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
+model = AutoModel.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
 
-# Mean Pooling - Take attention mask into account for correct averaging
+
 def mean_pooling(model_output, attention_mask):
-    token_embeddings = model_output[
-        0
-    ]  # First element of model_output contains all token embeddings
+    """
+    Perform mean pooling on the model output, taking the attention mask into
+    account. This combines token embeddings into an overall sentence embedding.
+
+    Args:
+        model_output (torch.Tensor): The output tensor from the model containing token embeddings.
+        attention_mask (torch.Tensor): The attention mask tensor indicating the valid tokens.
+
+    Returns:
+        torch.Tensor: The pooled token embeddings.
+    """
+    token_embeddings = model_output[0]  # First element contains all token embeddings
     input_mask_expanded = (
         attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
     )
@@ -17,29 +28,65 @@ def mean_pooling(model_output, attention_mask):
         input_mask_expanded.sum(1), min=1e-9
     )
 
-# Load model from HuggingFace Hub
-tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
-model = AutoModel.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
 
-# Sentences we want sentence embeddings for
-sentences = ["approximately", "around the same"]
+def compute_similarity(comparison, rest):
+    """
+    Compute the cosine similarity between a comparison sentence and a list of other sentences.
 
-# Tokenize sentences
-encoded_input = tokenizer(sentences, padding=True, truncation=True, return_tensors="pt")
+    Args:
+        comparison (str): The sentence to compare against.
+        rest (list): A list of sentences to compare with the comparison sentence.
 
-# Compute token embeddings
-with torch.no_grad():
-    model_output = model(**encoded_input)
+    Returns:
+        list: A list of tuples containing each sentence and its similarity score.
+    """
+    sentences = [comparison] + rest
+    # Tokenize sentences
+    encoded_input = tokenizer(
+        sentences, padding=True, truncation=True, return_tensors="pt"
+    )
 
-# Perform pooling
-sentence_embeddings = mean_pooling(model_output, encoded_input["attention_mask"])
+    # Compute token embeddings
+    with torch.no_grad():
+        model_output = model(**encoded_input)
 
-# Normalize embeddings -> big 1D tensors capturing semantic meaning of sentences
-sentence_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)
+    # Perform pooling
+    sentence_embeddings = mean_pooling(model_output, encoded_input["attention_mask"])
 
-# Compute cosine similarity between the sentence embeddings
-similarity = F.cosine_similarity(
-    sentence_embeddings[0].unsqueeze(0), sentence_embeddings[1].unsqueeze(0)
-)
-# .item() outputs python number from 1D tensor
-print(f"Sentence similarity: {similarity.item()}") 
+    # Normalize embeddings
+    sentence_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)
+
+    comparison_embedding = sentence_embeddings[0]
+    similarities = []
+    for other_embedding, sentence in zip(sentence_embeddings[1:], rest):
+        # Compute cosine similarity between the sentence embeddings
+        similarity = F.cosine_similarity(
+            comparison_embedding.unsqueeze(0), other_embedding.unsqueeze(0)
+        )
+        # Append the sentence and its similarity score to the list
+        similarities.append((sentence, round(similarity.item(), 5)))
+    return similarities
+
+
+def pretty_print_similarities(comparison, similarities):
+    """
+    Print the similarities between the comparison sentence and a list of other sentences in a readable format.
+
+    Args:
+        comparison (str): The sentence to compare against.
+        similarities (list): A list of tuples containing each sentence and its similarity score.
+
+    Returns:
+        None
+    """
+    print(f"Sentence similarities to '{comparison}'")
+    print("-" * 80)
+    for index, (sentence, similarity) in enumerate(similarities, start=1):
+        print(f"{index}. '{sentence}': {similarity}")
+
+
+# Example
+comparison = "counterbalances: neglect impacts by exerting an opposite effect"
+rest = ["works against", "balances the overall effect", "counterbalances"]
+similarities = compute_similarity(comparison, rest)
+pretty_print_similarities(comparison, similarities)
