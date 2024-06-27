@@ -8,14 +8,23 @@ tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v
 model = AutoModel.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
 
 
+def main():
+    # Example
+    ref = "counterbalances: neglect impacts by exerting an opposite effect"
+    rest = ["works against", "balances the overall effect", "counterbalances"]
+    similarities = compute_similarity(ref, rest)
+    pretty_print_similarities(ref, similarities)
+
+
 def mean_pooling(model_output, attention_mask):
     """
     Perform mean pooling on the model output, taking the attention mask into
     account. This combines token embeddings into an overall sentence embedding.
 
     Args:
-        model_output (torch.Tensor): The output tensor from the model containing token embeddings.
-        attention_mask (torch.Tensor): The attention mask tensor indicating the valid tokens.
+        model_output (torch.Tensor): The output tensor from the model containing
+        token embeddings. attention_mask (torch.Tensor): The attention mask
+        tensor indicating the valid tokens.
 
     Returns:
         torch.Tensor: The pooled token embeddings.
@@ -29,18 +38,20 @@ def mean_pooling(model_output, attention_mask):
     )
 
 
-def compute_similarity(comparison, rest):
+def compute_similarity(ref: str, rest: list[str]) -> list[tuple[str, float]]:
     """
-    Compute the cosine similarity between a comparison sentence and a list of other sentences.
+    Compute the cosine similarity between a reference sentence and a list of
+    other sentences.
 
     Args:
-        comparison (str): The sentence to compare against.
-        rest (list): A list of sentences to compare with the comparison sentence.
+        ref (str): The sentence to compare against. 
+        rest (list): A list of sentences to compare with the reference sentence.
 
     Returns:
-        list: A list of tuples containing each sentence and its similarity score.
+        list: A list of tuples containing each sentence and its similarity
+        score.
     """
-    sentences = [comparison] + rest
+    sentences = [ref] + rest
     # Tokenize sentences
     encoded_input = tokenizer(
         sentences, padding=True, truncation=True, return_tensors="pt"
@@ -56,37 +67,37 @@ def compute_similarity(comparison, rest):
     # Normalize embeddings
     sentence_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)
 
-    comparison_embedding = sentence_embeddings[0]
+    ref_embedding = sentence_embeddings[0]
     similarities = []
     for other_embedding, sentence in zip(sentence_embeddings[1:], rest):
         # Compute cosine similarity between the sentence embeddings
         similarity = F.cosine_similarity(
-            comparison_embedding.unsqueeze(0), other_embedding.unsqueeze(0)
+            ref_embedding.unsqueeze(0), other_embedding.unsqueeze(0)
         )
         # Append the sentence and its similarity score to the list
         similarities.append((sentence, round(similarity.item(), 5)))
     return similarities
 
 
-def pretty_print_similarities(comparison, similarities):
+def pretty_print_similarities(
+    ref: str, similarities: list[tuple[str, float]]
+) -> None:
     """
-    Print the similarities between the comparison sentence and a list of other sentences in a readable format.
+    Print the similarities between the reference sentence and a list of other
+    sentences in a readable format.
 
     Args:
-        comparison (str): The sentence to compare against.
-        similarities (list): A list of tuples containing each sentence and its similarity score.
+        ref (str): The sentence to compare against. similarities (list):
+        A list of tuples containing each sentence and its similarity score.
 
     Returns:
         None
     """
-    print(f"Sentence similarities to '{comparison}'")
+    print(f"Sentence similarities to '{ref}'")
     print("-" * 80)
     for index, (sentence, similarity) in enumerate(similarities, start=1):
         print(f"{index}. '{sentence}': {similarity}")
 
 
-# Example
-comparison = "counterbalances: neglect impacts by exerting an opposite effect"
-rest = ["works against", "balances the overall effect", "counterbalances"]
-similarities = compute_similarity(comparison, rest)
-pretty_print_similarities(comparison, similarities)
+if __name__ == "__main__":
+    main()
