@@ -16,6 +16,37 @@ def main():
     pretty_print_similarities(ref, similarities)
 
 
+def calculate_normalized_embeddings(inputs: str | list[str]):
+    """Computes and normalizes the sentence embeddings for a single or list of
+    sentences. 
+    
+    Output is a (# sentences x 384) tensor."""
+    # Tokenize sentences
+    encoded_input = tokenizer(
+        inputs, padding=True, truncation=True, return_tensors="pt"
+    )
+
+    # Compute token embeddings
+    with torch.no_grad():
+        model_output = model(**encoded_input)
+
+    # Perform pooling
+    sentence_embeddings = mean_pooling(model_output, encoded_input["attention_mask"])
+
+    # Return normalized embeddings
+    return F.normalize(sentence_embeddings, p=2, dim=1)
+
+
+def tensor_to_list(tensor : torch.Tensor) -> list | list[list]:
+    """Converts a 1xN tensor or MxN tensor into a 1xN list or MxN list of lists
+    of values in the tensor"""
+    assert tensor.size(dim=0) > 0, "ERROR: Tensor has no height"
+    if tensor.size(dim=0) == 1:
+        return tensor.tolist()[0]
+    elif tensor.size(dim=0) > 1:
+        return tensor.tolist()
+
+
 def mean_pooling(model_output, attention_mask):
     """
     Perform mean pooling on the model output, taking the attention mask into
@@ -52,21 +83,7 @@ def compute_similarity(ref: str, rest: list[str]) -> list[tuple[str, float]]:
         score.
     """
     sentences = [ref] + rest
-    # Tokenize sentences
-    encoded_input = tokenizer(
-        sentences, padding=True, truncation=True, return_tensors="pt"
-    )
-
-    # Compute token embeddings
-    with torch.no_grad():
-        model_output = model(**encoded_input)
-
-    # Perform pooling
-    sentence_embeddings = mean_pooling(model_output, encoded_input["attention_mask"])
-
-    # Normalize embeddings
-    sentence_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)
-
+    sentence_embeddings = calculate_normalized_embeddings(sentences)
     ref_embedding = sentence_embeddings[0]
     similarities = []
     for other_embedding, sentence in zip(sentence_embeddings[1:], rest):
