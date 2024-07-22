@@ -37,14 +37,40 @@ def calculate_normalized_embeddings(inputs: str | list[str]):
     return F.normalize(sentence_embeddings, p=2, dim=1)
 
 
+def compute_similarity(ref: str, rest: list[str]) -> list[tuple[str, float]]:
+    """
+    Compute the cosine similarity between a reference sentence and a list of
+    other sentences.
+
+    Args:
+        ref (str): The sentence to compare against.
+        rest (list): A list of sentences to compare with the reference sentence.
+
+    Returns:
+        list: A list of tuples containing each sentence and its similarity
+        score.
+    """
+    sentences = [ref] + rest
+    sentence_embeddings = calculate_normalized_embeddings(sentences)
+    ref_embedding = sentence_embeddings[0]
+    similarities = []
+    for other_embedding, sentence in zip(sentence_embeddings[1:], rest):
+        # Compute cosine similarity between the sentence embeddings
+        similarity = F.cosine_similarity(
+            ref_embedding.unsqueeze(0), other_embedding.unsqueeze(0)
+        )
+        # Append the sentence and its similarity score to the list
+        similarities.append((sentence, round(similarity.item(), 5)))
+    return similarities
+
+
 def tensor_to_list(tensor : torch.Tensor) -> list | list[list]:
     """Converts a 1xN tensor or MxN tensor into a 1xN list or MxN list of lists
     of values in the tensor"""
     assert tensor.size(dim=0) > 0, "ERROR: Tensor has no height"
     if tensor.size(dim=0) == 1:
         return tensor.tolist()[0]
-    elif tensor.size(dim=0) > 1:
-        return tensor.tolist()
+    return tensor.tolist()
 
 
 def mean_pooling(model_output, attention_mask):
@@ -67,33 +93,6 @@ def mean_pooling(model_output, attention_mask):
     return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(
         input_mask_expanded.sum(1), min=1e-9
     )
-
-
-def compute_similarity(ref: str, rest: list[str]) -> list[tuple[str, float]]:
-    """
-    Compute the cosine similarity between a reference sentence and a list of
-    other sentences.
-
-    Args:
-        ref (str): The sentence to compare against. 
-        rest (list): A list of sentences to compare with the reference sentence.
-
-    Returns:
-        list: A list of tuples containing each sentence and its similarity
-        score.
-    """
-    sentences = [ref] + rest
-    sentence_embeddings = calculate_normalized_embeddings(sentences)
-    ref_embedding = sentence_embeddings[0]
-    similarities = []
-    for other_embedding, sentence in zip(sentence_embeddings[1:], rest):
-        # Compute cosine similarity between the sentence embeddings
-        similarity = F.cosine_similarity(
-            ref_embedding.unsqueeze(0), other_embedding.unsqueeze(0)
-        )
-        # Append the sentence and its similarity score to the list
-        similarities.append((sentence, round(similarity.item(), 5)))
-    return similarities
 
 
 def pretty_print_similarities(
