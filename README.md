@@ -27,6 +27,7 @@ activated and you've selected the .venv's Python interpreter in VSCode --
 `which python3` will give you the path the the interpreter
 
 ## File Structure
+Organized according to file structure suggested by [FastAPI](https://fastapi.tiangolo.com/tutorial/bigger-applications/)
 
 ```
 circa-backend/
