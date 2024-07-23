@@ -1,14 +1,8 @@
-from app.models.models import ConceptModel
-from app.routes.common_imports import (
-    APIRouter,
-    Depends,
-    status,
-    get_db,
-    AsyncIOMotorDatabase,
-    HTTPException,
-)
-from fastapi.encoders import jsonable_encoder
-from bson import ObjectId
+from app.models.models import ConceptModel, UpdateConceptModel
+from app.routes.common_imports import *
+from app.helpers.similarity import calculate_normalized_embeddings, tensor_to_list
+from typing import List
+
 
 router = APIRouter()
 
@@ -23,7 +17,7 @@ router = APIRouter()
     response_model_by_alias=False,
 )
 async def add_concept(
-    concept: ConceptModel, db: AsyncIOMotorDatabase = Depends(get_db)
+    concept: ConceptModel = Body(...), db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """
     Insert a concept record (id ignored) and return it.
@@ -38,7 +32,13 @@ async def add_concept(
     return created_concept
 
 
-@router.get("/concepts")
+@router.get(
+    "/concepts",
+    response_description="Fetch all concepts",
+    response_model=List[ConceptModel],
+    response_model_by_alias=False,
+    status_code=status.HTTP_200_OK,
+)
 async def get_concepts(db: AsyncIOMotorDatabase = Depends(get_db)):
     """
     Fetch all concepts in the database
@@ -51,7 +51,13 @@ async def get_concepts(db: AsyncIOMotorDatabase = Depends(get_db)):
     return jsonable_encoder(output)
 
 
-@router.get("/concepts/{id}")
+@router.get(
+    "/concepts/{id}",
+    response_description="Fetch a concept by id",
+    response_model=ConceptModel,
+    response_model_by_alias=False,
+    status_code=status.HTTP_200_OK,
+)
 async def get_concept_by_id(id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
     """
     Find one concept record by id
@@ -62,11 +68,66 @@ async def get_concept_by_id(id: str, db: AsyncIOMotorDatabase = Depends(get_db))
     return jsonable_encoder(ConceptModel(**concept))
 
 
-@router.put("/concepts/{id}")
-async def update_concept(id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
-    return 1
+@router.put(
+    "/concepts/{id}",
+    response_description="Update a concept",
+    response_model=ConceptModel,
+    response_model_by_alias=False,
+    status_code=status.HTTP_200_OK,
+)
+async def update_concept(
+    id: str,
+    update_data: UpdateConceptModel = Body(...),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """
+    Updates an existing concept on name or usage, or returns the existing
+    concept without any update_data provided.
+
+    The normalized_embedding, if the concept is updated, is automatically 
+    recalculated.
+    """
+    concept = await db.concepts.find_one({"_id": ObjectId(id)})
+    if not concept:
+        raise HTTPException(status_code=404, detail=f"Concept not found {id=}")
+
+    update_data_dict = {
+        k: v for k, v in update_data.model_dump(by_alias=True).items() if v is not None
+    }
+
+    # Recalculate the normalized_embedding if name or usage is updated
+    if "name" in update_data_dict or "usage" in update_data_dict:
+        embed_string = f"{update_data_dict.get('name', concept['name'])}: {update_data_dict.get('usage', concept['usage'])}"
+        update_data_dict["normalized_embedding"] = tensor_to_list(
+            calculate_normalized_embeddings(embed_string)
+        )
+
+    if update_data_dict:
+        update_result = await db.concepts.find_one_and_update(
+            {"_id": ObjectId(id)},
+            {"$set": update_data_dict},
+            return_document=True,
+        )
+        if update_result:
+            return jsonable_encoder(ConceptModel(**update_result))
+
+    existing_concept = await db.concepts.find_one({"_id": ObjectId(id)})
+    if existing_concept:
+        return jsonable_encoder(ConceptModel(**existing_concept))
+
+    raise HTTPException(status_code=404, detail=f"Concept {id} not found")
 
 
-@router.delete("/concepts/{id}")
+@router.delete(
+    "/concepts/{id}",
+    response_description="Delete a concept by id",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 async def delete_concept(id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
-    return 1
+    """
+    Delete a concept by id
+    """
+    delete_result = await db.concepts.delete_one({"_id": ObjectId(id)})
+    if delete_result.deleted_count == 1:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    raise HTTPException(status_code=404, detail=f"Concept not found {id=}")
