@@ -8,11 +8,12 @@
  [**FastAPI**](https://fastapi.tiangolo.com/) for an asychronous, 
  high-performance, and scalable RESTful API.
 
- Coming soon: Docker containerization of project.
+**Coming soon:** Docker containerization of project.
 
 ## Startup
 - Test the development API server with `fastapi dev app/main.py`
 - Alternative: `uvicorn app.main:app --reload`
+- Use the FastAPI Swagger UI at `http://127.0.0.1:8000/docs` to test routes and requests
 
 ## Setup
 - Using virtualenv package for my isolated virtual environment
@@ -51,9 +52,6 @@ circa-backend/
 │ ├── db/
 │ │ ├── init.py
 │ │ ├── database.py # Database connection and dependency injection
-│ │ ├── tables/ # Database collections -- not named 'collections' as that's an existing Python module
-│ │ │ ├── init.py
-│ │ │ ├── <collection>.py # Database helper operations for each collection
 │ ├── helpers/
 │ │ ├── init.py
 │ │ ├── <helper>.py # Operations related to ML processing, or other helper

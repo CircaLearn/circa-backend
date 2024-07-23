@@ -1,9 +1,9 @@
 from pydantic import BaseModel, Field, computed_field, ConfigDict
 from pydantic.functional_validators import BeforeValidator
-from app.helpers.similarity import calculate_normalized_embeddings
+from app.helpers.similarity import calculate_normalized_embeddings, tensor_to_list
 from datetime import datetime
-from bson import ObjectId
 from typing import Optional, Annotated, List
+from bson import ObjectId
 
 
 # Custom type for ObjectId, represented as a string in the model for JSON
@@ -14,7 +14,8 @@ class ConceptModel(BaseModel):
     """
     Container for a single concept record.
     """
-    id: PyObjectId = Field(alias="_id", default_factory=ObjectId)
+    # best practice to let mongodb handle _id generation, so we default to None
+    id: Optional[PyObjectId] = Field(alias="_id", default=None)
     user_id: PyObjectId = Field(...)
     name: Annotated[str, Field(...)]
     usage: Annotated[str, Field(...)]
@@ -26,9 +27,12 @@ class ConceptModel(BaseModel):
     def normalized_embedding(self) -> List[float]:
         # Compute the normalized embedding based on name and usage
         embed_string = f"{self.name}: {self.usage}"
-        return calculate_normalized_embeddings(embed_string)
+        return tensor_to_list(calculate_normalized_embeddings(embed_string))
 
     model_config = ConfigDict(
+        json_encoders = {
+            ObjectId: str,
+        },
         populate_by_name=True,
         arbitrary_types_allowed=True,
         json_schema_extra={
@@ -40,15 +44,16 @@ class ConceptModel(BaseModel):
                 "date_created": "2023-07-23T10:00:00Z",
                 "last_seen": "2023-07-23T12:00:00Z",
                 "progress": 0.5,
-                "normalized_embedding": [0.1, 0.2, 0.3, ...],
+                "normalized_embedding": [0.1, 0.2, 0.3],
             }
         },
     )
 
 
-# run as a module: python3 -m app.models.models
-instance = ConceptModel(user_id="60b8d6e1e1b8f30d6c8e6f59",
-                        name = "Test",
-                        usage="also test")
+if __name__ == '__main__':
+    # run as a module: python3 -m app.models.models
+    instance = ConceptModel(user_id="60b8d6e1e1b8f30d6c8e6f59",
+                            name = "Test",
+                            usage="also test")
 
-print(instance.normalized_embedding)
+    print(instance.normalized_embedding)

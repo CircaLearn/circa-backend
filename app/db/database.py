@@ -12,11 +12,11 @@ load_dotenv(dotenv_path)
 
 # Connecting to database
 URI_KEY = os.getenv("MONGO_URI")
-PRODUCTION = os.getenv("PRODUCTION")
+PRODUCTION = True if os.getenv("PRODUCTION") == "true" else False
 
 # Separate production and local database by name on the same cluster
 # 'local' is a reserved database name in mongodb, so we use 'dev' instead
-db_name = "production" if PRODUCTION == "true" else "dev"
+db_name = "production" if PRODUCTION else "dev"
 
 # Create an async MongoDB client
 client = motor.motor_asyncio.AsyncIOMotorClient(URI_KEY, tlsCAFile=certifi.where())
@@ -33,12 +33,11 @@ async def ping_client():
     """Test MongoDB connection"""
     try:
         await client.admin.command("ping")
-        print("Successfully connected to MongoDB!")
+        print(f"Successfully connected to MongoDB! {db_name=}")
     except Exception as e:
         print("ERROR: Unable to connect to MongoDB", str(e))
 
 
 # Example to test the connection
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(ping_client())
+    asyncio.run(ping_client())

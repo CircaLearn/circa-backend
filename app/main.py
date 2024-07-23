@@ -2,11 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.helpers.similarity import compute_similarity
 from app.routes import concepts
+from app.db.database import PRODUCTION
 
 app = FastAPI()
 
-origins = ['https://localhost:3000',
-           'circalearn.net'] # domain-to-be
+if PRODUCTION:
+    origins = ["circalearn.net"]  # domain-to-be
+elif not PRODUCTION:
+    origins = ['*']
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,12 +20,12 @@ app.add_middleware(
 )
 
 # Include API Routes
-app.include_router(concepts.router, prefix="/api")
+app.include_router(concepts.router, prefix="/api/v1", tags=['concepts'])
 
 
 @app.get("/")
 def root():
-    return {"message": "Hello World!"}
+    return {"message": "Welcome to the Circa API"}
 
 
 # Route to quickly compare two sentences
