@@ -1,7 +1,6 @@
 # Centralizes the imports I will need for all routes
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from fastapi import APIRouter, Depends, HTTPException, status, Body, Response
-from fastapi.encoders import jsonable_encoder
 from app.db.database import get_db
 from bson import ObjectId
 
@@ -16,6 +15,5 @@ __all__ = [
     "status",
     "get_db",
     "AsyncIOMotorDatabase",
-    "ObjectId",
-    "jsonable_encoder"
+    "ObjectId"
 ]

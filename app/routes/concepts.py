@@ -48,7 +48,7 @@ async def get_concepts(db: AsyncIOMotorDatabase = Depends(get_db)):
     concepts_cursor = db.concepts.find()
     concepts = await concepts_cursor.to_list(length=1000)
     output = [ConceptModel(**concept) for concept in concepts]
-    return jsonable_encoder(output)
+    return output
 
 
 @router.get(
@@ -65,7 +65,7 @@ async def get_concept_by_id(id: str, db: AsyncIOMotorDatabase = Depends(get_db))
     concept = await db.concepts.find_one({"_id": ObjectId(id)})
     if not concept:
         raise HTTPException(404, detail=f"Concept not found {id=}")
-    return jsonable_encoder(ConceptModel(**concept))
+    return concept
 
 
 @router.put(
@@ -109,11 +109,11 @@ async def update_concept(
             return_document=True,
         )
         if update_result:
-            return jsonable_encoder(ConceptModel(**update_result))
+            return update_result
 
     existing_concept = await db.concepts.find_one({"_id": ObjectId(id)})
     if existing_concept:
-        return jsonable_encoder(ConceptModel(**existing_concept))
+        return existing_concept
 
     raise HTTPException(status_code=404, detail=f"Concept {id} not found")
 
