@@ -1,10 +1,22 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.helpers.similarity import compute_similarity
 from app.routes import concepts
 
 app = FastAPI()
 
-# Outside API Routes
+origins = ['https://localhost:3000',
+           'circalearn.net'] # domain-to-be
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+# Include API Routes
 app.include_router(concepts.router, prefix="/api")
 
 
