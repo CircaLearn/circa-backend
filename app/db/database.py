@@ -11,6 +11,7 @@ dotenv_path = os.path.join(project_root, ".env")
 load_dotenv(dotenv_path)
 
 # Connecting to database
+# NOTE: IP of connection MUST be added in MongoDB Atlas
 URI_KEY = os.getenv("MONGO_URI")
 PRODUCTION = True if os.getenv("PRODUCTION") == "true" else False
 
@@ -38,6 +39,6 @@ async def ping_client():
         print("ERROR: Unable to connect to MongoDB", str(e))
 
 
-# Example to test the connection
+# Example to test the connection: run python3 -m app.db.database
 if __name__ == "__main__":
     asyncio.run(ping_client())

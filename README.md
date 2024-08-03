@@ -11,8 +11,10 @@
 **Coming soon:** Docker containerization of project.
 
 ## Startup
-- Test the development API server with `fastapi dev app/main.py`
-- Alternative: `uvicorn app.main:app --reload`
+- Ensure your current IP is added in MongoDB Atlas
+  - Otherwise, no API requests will function
+- Test the development API server with `uvicorn app.main:app --reload`
+- Alternative: `fastapi dev app/main.py`
 - Use the FastAPI Swagger UI at `http://127.0.0.1:8000/docs` to test routes and requests
 
 ## Setup
