@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.helpers.similarity import compute_similarity
-from app.routes import concepts
+from app.routes import concepts, users
 from app.db.database import PRODUCTION
 
 app = FastAPI()
@@ -21,6 +21,7 @@ app.add_middleware(
 
 # Include API Routes
 app.include_router(concepts.router, prefix="/api/v1", tags=['concepts'])
+app.include_router(users.router, prefix="/api/v1", tags=["users"])
 
 
 @app.get("/")
