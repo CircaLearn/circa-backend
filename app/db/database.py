@@ -22,7 +22,12 @@ PRODUCTION = True if os.getenv("PRODUCTION") == "true" else False
 db_name = "production" if PRODUCTION else "dev"
 
 # Create an async MongoDB client
-client = motor.motor_asyncio.AsyncIOMotorClient(URI_KEY, tlsCAFile=certifi.where())
+client = motor.motor_asyncio.AsyncIOMotorClient(
+    URI_KEY,
+    tlsCAFile=certifi.where(),
+    serverSelectionTimeoutMS=10000,  # Time to wait for server selection
+    connectTimeoutMS=10000,  # Time to wait for db connection to be established
+)
 db = client[db_name]
 
 
@@ -50,4 +55,10 @@ async def ping_client():
 
 # Example to test the connection: run python3 -m app.db.database
 if __name__ == "__main__":
-    asyncio.run(ping_client())
+    try:
+        asyncio.run(ping_client())
+    # okay this exception doesn't actually work since it's not a typical error
+    # we can catch -- but the advice is just as valid!
+    except Exception as e:
+        print("ERROR: Failed to connect")
+        print("Ensure IP Address of Connection is Configured in MongoDB Atlas\n\n" + e)
