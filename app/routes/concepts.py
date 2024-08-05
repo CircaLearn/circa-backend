@@ -17,7 +17,7 @@ router = APIRouter()
     response_model_by_alias=False,
 )
 async def add_concept(
-    concept: ConceptModel = Body(...), db: AsyncIOMotorDatabase = Depends(get_db)
+    db : DbDep, concept: ConceptModel = Body(...)
 ):
     """
     Insert a concept record (id ignored) and return it.
@@ -39,7 +39,7 @@ async def add_concept(
     response_model_by_alias=False,
     status_code=status.HTTP_200_OK,
 )
-async def get_concepts(db: AsyncIOMotorDatabase = Depends(get_db)):
+async def get_concepts(db: DbDep):
     """
     Fetch all concepts in the database
 
@@ -58,7 +58,7 @@ async def get_concepts(db: AsyncIOMotorDatabase = Depends(get_db)):
     response_model_by_alias=False,
     status_code=status.HTTP_200_OK,
 )
-async def get_concept_by_id(id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def get_concept_by_id(db: DbDep, id: str):
     """
     Find one concept record by id
     """
@@ -76,9 +76,9 @@ async def get_concept_by_id(id: str, db: AsyncIOMotorDatabase = Depends(get_db))
     status_code=status.HTTP_200_OK,
 )
 async def update_concept(
-    id: str,
-    update_data: UpdateConceptModel = Body(...),
-    db: AsyncIOMotorDatabase = Depends(get_db),
+    db: DbDep, # Dependency
+    id: str, # Path parameter
+    update_data: UpdateConceptModel = Body(...) # Request body
 ):
     """
     Updates an existing concept on name or usage, or returns the existing
@@ -123,7 +123,7 @@ async def update_concept(
     response_description="Delete a concept by id",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_concept(id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def delete_concept(db: DbDep, id: str):
     """
     Delete a concept by id
     """

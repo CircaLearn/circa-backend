@@ -1,7 +1,7 @@
 # Centralizes the imports I will need for all routes
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from fastapi import APIRouter, Depends, HTTPException, status, Body, Response
-from app.db.database import get_db
+from app.db.database import DbDep
 from bson import ObjectId
 
 # __all__ contains all public modules imported with a wildcard import of
@@ -13,7 +13,6 @@ __all__ = [
     "Body",
     "Response",
     "status",
-    "get_db",
-    "AsyncIOMotorDatabase",
+    "DbDep",
     "ObjectId"
 ]

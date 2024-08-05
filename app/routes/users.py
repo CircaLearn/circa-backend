@@ -8,7 +8,7 @@ router = APIRouter()
             status_code=status.HTTP_201_CREATED,
             response_model=UserModel,
             response_model_by_alias=False,)
-async def create_user(user : UserModel, db = Depends(get_db)):
+async def create_user(db: DbDep, user : UserModel = Body(...)):
     """
     Insert a user (ignore id) and return it.
     A unique `id` will be created.

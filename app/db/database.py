@@ -1,5 +1,7 @@
 import motor.motor_asyncio
+from typing import Annotated
 from dotenv import load_dotenv
+from fastapi import Depends
 import os
 import certifi
 import asyncio
@@ -25,9 +27,16 @@ db = client[db_name]
 
 
 # Method used by FastAPI to connect to db with dependency
-async def get_db():
+async def get_db() -> motor.motor_asyncio.AsyncIOMotorDatabase:
     """Return MongoDB database of our connection"""
     return db
+
+
+# Create a shorthand for the database dependency to use in routes
+# This leverages FastAPI's feature to interpret Annotated types for dependency injection,
+# simplifying the route definitions by reducing repetitive code.
+# This is what you should import and add as an argument to all db routes.
+DbDep = Annotated[motor.motor_asyncio.AsyncIOMotorDatabase, Depends(get_db)]
 
 
 async def ping_client():
