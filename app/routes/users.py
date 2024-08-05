@@ -1,9 +1,22 @@
 from app.models.models import UserModel, UpdateUserModel
+from passlib.context import CryptContext
 from app.routes.common_imports import *
 
 router = APIRouter()
 
-@router.get("/users",
+# Initialize the password context for hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+@router.post("/users",
             response_description="Insert new user",
             status_code=status.HTTP_201_CREATED,
             response_model=UserModel,
@@ -13,8 +26,9 @@ async def create_user(db: DbDep, user : UserModel = Body(...)):
     Insert a user (ignore id) and return it.
     A unique `id` will be created.
     """
-    # TODO hash password before inserted
-    # Return the session by calling the login function?
+    # Hash the password before inserting the user
+    user.password = hash_password(user.password)
+
     new_user = await db.users.insert_one(
         user.model_dump(by_alias=True, exclude=["id"])
     )
