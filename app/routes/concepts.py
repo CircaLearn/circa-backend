@@ -7,6 +7,23 @@ from typing import List
 router = APIRouter()
 
 
+async def find_concept_by_id(db: DbDep, id: str):
+    """
+    Finds a concept by id and returns it.
+
+    Raises exceptions for invalid ID format and non-existant concepts.
+    """
+    try:
+        object_id = ObjectId(id)
+    except errors.InvalidId:
+        raise HTTPException(status_code=400, detail=f"Invalid concept ID format: {id}")
+
+    concept = await db.concepts.find_one({"_id": object_id})
+    if not concept:
+        raise HTTPException(status_code=404, detail=f"Concept not found with id={id}")
+    return concept
+
+
 @router.post(
     "/concepts",
     response_description="Insert new concept",
@@ -62,7 +79,12 @@ async def get_concept_by_id(db: DbDep, id: str):
     """
     Find one concept record by id
     """
-    concept = await db.concepts.find_one({"_id": ObjectId(id)})
+    try:
+        object_id = ObjectId(id)
+    except errors.InvalidId:
+        raise HTTPException(status_code=400, detail=f"Invalid user ID format: {id}")
+
+    concept = await db.concepts.find_one({"_id": object_id})
     if not concept:
         raise HTTPException(404, detail=f"Concept not found {id=}")
     return concept
@@ -76,20 +98,19 @@ async def get_concept_by_id(db: DbDep, id: str):
     status_code=status.HTTP_200_OK,
 )
 async def update_concept(
-    db: DbDep, # Dependency
-    id: str, # Path parameter
-    update_data: UpdateConceptModel = Body(...) # Request body
+    db: DbDep,  # Dependency
+    id: str,  # Path parameter
+    update_data: UpdateConceptModel = Body(...),  # Request body
 ):
     """
     Updates an existing concept on name or usage, or returns the existing
     concept without any update_data provided.
 
-    The normalized_embedding, if the concept is updated, is automatically 
+    The normalized_embedding, if the concept is updated, is automatically
     recalculated.
     """
-    concept = await db.concepts.find_one({"_id": ObjectId(id)})
-    if not concept:
-        raise HTTPException(status_code=404, detail=f"Concept not found {id=}")
+    concept = await find_concept_by_id(db, id)
+    # if we got this far, the concept exists
 
     update_data_dict = {
         k: v for k, v in update_data.model_dump(by_alias=True).items() if v is not None
@@ -103,19 +124,14 @@ async def update_concept(
         )
 
     if update_data_dict:
-        update_result = await db.concepts.find_one_and_update(
-            {"_id": ObjectId(id)},
+        await db.concepts.update_one(
+            {"_id": concept["_id"]},
             {"$set": update_data_dict},
-            return_document=True,
         )
-        if update_result:
-            return update_result
+        updated_concept = await db.concepts.find_one({"_id": concept["_id"]})
+        return updated_concept
 
-    existing_concept = await db.concepts.find_one({"_id": ObjectId(id)})
-    if existing_concept:
-        return existing_concept
-
-    raise HTTPException(status_code=404, detail=f"Concept {id} not found")
+    return concept
 
 
 @router.delete(
@@ -129,5 +145,8 @@ async def delete_concept(db: DbDep, id: str):
     """
     delete_result = await db.concepts.delete_one({"_id": ObjectId(id)})
     if delete_result.deleted_count == 1:
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
-    raise HTTPException(status_code=404, detail=f"Concept not found {id=}")
+        return JSONResponse(
+            content={"message": f"Concept with {id=} deleted."},
+            status_code=status.HTTP_200_OK,
+        )
+    raise HTTPException(status_code=404, detail=f"Concept with {id=} not found.")

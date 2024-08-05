@@ -30,6 +30,23 @@ def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 
+async def find_user_by_id(db: DbDep, id: str):
+    """
+    Finds a user by id and returns it.
+
+    Raises exceptions for invalid ID format and non-existant users.
+    """
+    try:
+        object_id = ObjectId(id)
+    except errors.InvalidId:
+        raise HTTPException(status_code=400, detail=f"Invalid user ID format: {id}")
+
+    user = await db.users.find_one({"_id": object_id})
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User not found with id={id}")
+    return user
+
+
 @router.post(
     "/users",
     response_description="Insert new user",
@@ -86,15 +103,7 @@ async def get_user_by_id(db: DbDep, id: str):
     """
     Find one user record by id.
     """
-    try:
-        object_id = ObjectId(id)
-    except errors.InvalidId:
-        raise HTTPException(status_code=400, detail=f"Invalid user ID format: {id}")
-
-    user = await db.users.find_one({"_id": object_id})
-    if not user:
-        raise HTTPException(status_code=404, detail=f"User not found with id={id}")
-    return user
+    return await find_user_by_id(db, id)
 
 
 @router.put(
@@ -106,12 +115,10 @@ async def get_user_by_id(db: DbDep, id: str):
 )
 async def update_user(db: DbDep, id: str, update_data: UpdateUserModel = Body(...)):
     """
-    Updates an existing user's username, password, or profile picture, or 
+    Updates an existing user's username, password, or profile picture, or
     returns the existing user without any update_data provided.
     """
-    user = await db.users.find_one({"_id": ObjectId(id)})
-    if not user:
-        raise HTTPException(status_code=404, detail=f"User not found {id=}")
+    existing_user = await find_user_by_id(db, id)
 
     # Extract only the fields that are present in the update_data
     update_data_dict = {
@@ -124,20 +131,15 @@ async def update_user(db: DbDep, id: str, update_data: UpdateUserModel = Body(..
 
     # Update the user document if there are changes
     if update_data_dict:
-        update_result = await db.users.find_one_and_update(
-            {"_id": ObjectId(id)},
+        await db.users.update_one(
+            {"_id": existing_user["_id"]},
             {"$set": update_data_dict},
-            return_document=True,
         )
-        if update_result:
-            return update_result
+        updated_user = await db.users.find_one({"_id": existing_user["_id"]})
+        return updated_user
 
     # Return the existing user document if no updates were made
-    existing_user = await db.users.find_one({"_id": ObjectId(id)})
-    if existing_user:
-        return existing_user
-
-    raise HTTPException(status_code=404, detail=f"User {id} not found")
+    return existing_user
 
 
 @router.delete(
