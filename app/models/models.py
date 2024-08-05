@@ -77,14 +77,10 @@ class UserModel(BaseModel):
         str_strip_whitespace=True,
         arbitrary_types_allowed=True,
         json_schema_extra={
-            "example": {
-                "_id": "80b9d6e1e1b8f30d6c8e6f88",
+            "example": { # data used as default in /docs users POST
                 "email": "test@tester.com",
                 "username": "TestyTest",
-                "password": "p=4$FHzFXaVPKR0Ryz2oymZ8Gw$3",
-                "date_created": "2023-08-04T10:00:00Z",
-                "last_seen": "2023-08-04T10:00:00Z",
-                "day_streak": 0
+                "password": "password123",
             }
         },
     )

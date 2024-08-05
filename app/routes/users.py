@@ -26,6 +26,12 @@ async def create_user(db: DbDep, user : UserModel = Body(...)):
     Insert a user (ignore id) and return it.
     A unique `id` will be created.
     """
+    existing_user = await db.users.find_one({"email": user.email})
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A user with this email already exists.",
+        )
     # Hash the password before inserting the user
     user.password = hash_password(user.password)
 
