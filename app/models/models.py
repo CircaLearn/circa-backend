@@ -1,22 +1,20 @@
-from pydantic import BaseModel, Field, computed_field, ConfigDict
+from pydantic import BaseModel, Field, computed_field, ConfigDict, EmailStr
 from pydantic.functional_validators import BeforeValidator
 from app.helpers.similarity import calculate_normalized_embeddings, tensor_to_list
 from datetime import datetime
 from typing import Optional, Annotated, List
-from bson import ObjectId
 
 
 # Custom type for ObjectId, represented as a string in the model for JSON
 # serialization
 PyObjectId = Annotated[str, BeforeValidator(str)]
 
+
 class ConceptModel(BaseModel):
     """
     Container for a single concept record.
     """
-    # Best practice to let MongoDB handle _id generation, so we default to None
-    # Alias is what is used for serialization & deserialization, but internally
-    # we can refer to _id or id
+
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
     user_id: PyObjectId
     name: str  # Required field
@@ -54,6 +52,7 @@ class UpdateConceptModel(BaseModel):
 
     Only name and usage can be modified (embedding is updated automatically)
     """
+
     name: Optional[str] = None
     usage: Optional[str] = None
     last_seen: Optional[datetime] = None
@@ -64,10 +63,10 @@ class UserModel(BaseModel):
     Container for a single user record
     """
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
-    email: str # unique, validate in API routes
+    email: EmailStr  # unique, validate in API routes
     username: str
-    password: str
-    profile_picture: Optional[str] = None 
+    hashed_password: str
+    profile_picture: Optional[str] = None
     date_created: Annotated[datetime, Field(default_factory=datetime.now)]
     last_seen: Annotated[datetime, Field(default_factory=datetime.now)]
     day_streak: Annotated[int, Field(default=0)]
@@ -77,7 +76,7 @@ class UserModel(BaseModel):
         str_strip_whitespace=True,
         arbitrary_types_allowed=True,
         json_schema_extra={
-            "example": { # data used as default in /docs users POST
+            "example": {
                 "email": "test@tester.com",
                 "username": "TestyTest",
                 "password": "password123",
@@ -86,12 +85,60 @@ class UserModel(BaseModel):
     )
 
 
+class UserCreateModel(BaseModel):
+    """
+    Model for creating a new user
+    """
+
+    email: EmailStr
+    username: str
+    password: str
+
+    model_config = ConfigDict(
+        json_schema_extra = {
+            "example": {
+                "email": "test@tester.com",
+                "username": "TestyTest",
+                "password": "password123",
+            }
+        }
+    )
+
+
+class UserResponseModel(BaseModel):
+    """
+    Model for returning user data excluding sensitive information
+    """
+
+    id: Optional[PyObjectId] = Field(alias="_id", default=None)
+    email: EmailStr
+    username: str
+    profile_picture: Optional[str] = None
+    date_created: datetime
+    last_seen: datetime
+    day_streak: int
+
+    model_config = ConfigDict(
+        json_schema_extra = {
+            "example": {
+                "id": "60f5a3c8e2d1a2b79a5d6e3b",
+                "email": "test@tester.com",
+                "username": "TestyTest",
+                "profile_picture": None,
+                "date_created": "2021-07-19T23:28:40.153Z",
+                "last_seen": "2021-07-19T23:28:40.153Z",
+                "day_streak": 0,
+            }
+        }
+    )
+
 class UpdateUserModel(BaseModel):
     """
-    Model for possible updates to an existing user. 
-    
+    Model for possible updates to an existing user.
+
     Only usernames, passwords and profile_pictures may be updated.
     """
+
     username: Optional[str] = None
     password: Optional[str] = None
     profile_picture: Optional[str] = None

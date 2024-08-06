@@ -3,8 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.helpers.similarity import compute_similarity
 from app.routes import concepts, users
 from app.db.database import PRODUCTION
+from fastapi.security import OAuth2PasswordBearer
 
 app = FastAPI()
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 if PRODUCTION:
     origins = ["circalearn.net"]  # domain-to-be
