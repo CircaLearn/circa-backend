@@ -144,6 +144,15 @@ class UpdateUserModel(BaseModel):
     profile_picture: Optional[str] = None
 
 
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    id: Optional[PyObjectId] = Field(alias="_id", default=None)
+
+
 if __name__ == '__main__':
     # run as a module: python3 -m app.models.models
     instance = ConceptModel(user_id="60b8d6e1e1b8f30d6c8e6f59",
