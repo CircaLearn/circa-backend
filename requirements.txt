@@ -37,7 +37,6 @@ numba==0.60.0
 numpy==2.0.0
 orjson==3.10.5
 packaging==24.1
-passlib==1.7.4
 platformdirs==4.2.2
 pluggy==1.5.0
 pooch==1.8.2

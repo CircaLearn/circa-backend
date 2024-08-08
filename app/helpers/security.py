@@ -1,8 +1,4 @@
-from passlib.context import CryptContext
-
-
-# Initialize the password context for hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import bcrypt
 
 
 def hash_password(password: str) -> str:
@@ -14,7 +10,10 @@ def hash_password(password: str) -> str:
     Using a salt, and computationally-intensive algorithms, avoids rainbow table
     attacks
     """
-    return pwd_context.hash(password)
+    pwd_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password=pwd_bytes, salt=salt)
+    return hashed_password
 
 
 def verify_password(plain_password, hashed_password):
@@ -23,4 +22,10 @@ def verify_password(plain_password, hashed_password):
     together and compare the results to the original hashed_password, verifying
     if two plaintext passwords are equivalent.
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    password_byte_enc = plain_password.encode("utf-8")
+    return bcrypt.checkpw(password=password_byte_enc, hashed_password=hashed_password)
+
+# TODO: create a general authentication dependency (verifies tokens and all)
+# that I can inject into all routes requiring authentication without ever having
+# to access properties of the injection (unlike DbDep, which I'll always have to
+# use inside the routes and can't just be injected in main.py)
