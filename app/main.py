@@ -3,11 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.helpers.similarity import compute_similarity
 from app.routes import concepts, users, auth
 from app.db.database import PRODUCTION
-from fastapi.security import OAuth2PasswordBearer
+
 
 app = FastAPI()
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 API_PREFIX = "/api/v1"
 
@@ -25,6 +23,8 @@ app.add_middleware(
 )
 
 # Create a main API router and add all other routers to it
+# TODO: Use authentication dependency defined in helpers.security to inject
+# general authentication dependency
 api_router = APIRouter()
 api_router.include_router(concepts.router, tags=["concepts"])
 api_router.include_router(users.router, tags=["users"])

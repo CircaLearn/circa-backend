@@ -1,6 +1,5 @@
 import bcrypt
 
-
 def hash_password(password: str) -> str:
     """
     Hashes a string by creating a random salt and hashing the string with that
@@ -13,7 +12,7 @@ def hash_password(password: str) -> str:
     pwd_bytes = password.encode('utf-8')
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(password=pwd_bytes, salt=salt)
-    return hashed_password
+    return hashed_password.decode('utf-8') # Convert to string for storage
 
 
 def verify_password(plain_password, hashed_password):
@@ -22,8 +21,10 @@ def verify_password(plain_password, hashed_password):
     together and compare the results to the original hashed_password, verifying
     if two plaintext passwords are equivalent.
     """
+    # convert both to bytes
     password_byte_enc = plain_password.encode("utf-8")
-    return bcrypt.checkpw(password=password_byte_enc, hashed_password=hashed_password)
+    hashed_password_bytes = hashed_password.encode("utf-8")
+    return bcrypt.checkpw(password_byte_enc, hashed_password_bytes)
 
 # TODO: create a general authentication dependency (verifies tokens and all)
 # that I can inject into all routes requiring authentication without ever having
