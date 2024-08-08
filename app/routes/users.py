@@ -4,37 +4,11 @@ from app.models.models import (
     UserResponseModel,
     UpdateUserModel,
 )
-from passlib.context import CryptContext
 from app.routes.common_imports import *
-from typing import List, Annotated
-from fastapi.security import OAuth2PasswordRequestForm
+from app.helpers.security import hash_password
+from typing import List
 
 router = APIRouter()
-
-# Initialize the password context for hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-def hash_password(password: str) -> str:
-    """
-    Hashes a string by creating a random salt and hashing the string with that
-    random salt. The returned string contains information about the hashing
-    algorithm used, the salt, and the complete hash needed for verification.
-
-    Using a salt, and computationally-intensive algorithms, avoids rainbow table
-    attacks
-    """
-    return pwd_context.hash(password)
-
-
-def verify_password(plain_password, hashed_password):
-    """
-    Uses the salt from hashed_password and plain_password to rehash the two
-    together and compare the results to the original hashed_password, verifying
-    if two plaintext passwords are equivalent.
-    """
-    return pwd_context.verify(plain_password, hashed_password)
-
 
 async def find_user_by_id(db: DbDep, id: str):
     """
@@ -180,7 +154,7 @@ async def update_user(db: DbDep, id: str, update_data: UpdateUserModel = Body(..
     # Return the existing user document if no updates were made
     return UserResponseModel(**existing_user)
 
-
+# TODO: Make delete route disable users rather than deleting them
 @router.delete(
     "/users/{id}",
     response_description="Delete a user by id",
@@ -198,19 +172,3 @@ async def delete_user(db: DbDep, id: str):
         )
     raise HTTPException(status_code=404, detail=f"User with {id=} not found")
 
-
-@router.post("/token")
-async def login(db: DbDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-    # Fetch user from the database
-    user_data = await db.users.find_one({"email": form_data.username})
-    if not user_data:
-        # use dummy hash to avoid timing attacks
-        hash_password("DUMMY")
-        raise HTTPException(status_code=400, detail="Invalid username or password")
-    user = UserModel(**user_data)  # cast to UserModel for Intellisense
-
-    # Verify password
-    if not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=400, detail="Invalid username or password")
-
-    return {"access_token": user.username, "token_type": "bearer"}

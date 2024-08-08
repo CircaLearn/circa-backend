@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from app.helpers.similarity import compute_similarity
-from app.routes import concepts, users
+from app.routes import concepts, users, auth
 from app.db.database import PRODUCTION
 from fastapi.security import OAuth2PasswordBearer
 
@@ -28,6 +28,7 @@ app.add_middleware(
 api_router = APIRouter()
 api_router.include_router(concepts.router, tags=["concepts"])
 api_router.include_router(users.router, tags=["users"])
+api_router.include_router(auth.router, tags=["authentication"], prefix="/auth")
 
 
 # Routes currently for testing -- still at "/api/v1/" not just "/"

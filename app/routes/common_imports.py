@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Body, Response, Q
 from fastapi.responses import JSONResponse
 from app.db.database import DbDep
 from bson import ObjectId, errors
+from typing import Annotated
 
 # __all__ contains all public modules imported with a wildcard import of
 # imports.py
@@ -17,5 +18,6 @@ __all__ = [
     "status",
     "DbDep",
     "ObjectId",
-    "errors"
+    "errors",
+    "Annotated",
 ]
