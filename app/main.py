@@ -9,6 +9,8 @@ app = FastAPI()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+API_PREFIX = "/api/v1"
+
 if PRODUCTION:
     origins = ["circalearn.net"]  # domain-to-be
 else:
@@ -43,8 +45,8 @@ def compare(ref: str, other: str):
     return {"similarity": similarity}
 
 
-# Include the complete api router in the FastAPI app with the prefix /api/v1
-app.include_router(api_router, prefix="/api/v1")
+# Include the complete api router in the FastAPI app with the api prefix
+app.include_router(api_router, prefix=API_PREFIX)
 
 # For fast local development
 # Use `uvicorn app.main:app --reload` to start

@@ -45,7 +45,7 @@ async def find_user_by_id(db: DbDep, id: str):
     try:
         object_id = ObjectId(id)
     except errors.InvalidId:
-        raise HTTPException(status_code=400, detail=f"Invalid user ID format: {id}")
+        raise HTTPException(status_code=400, detail=f"Invalid user ID format: '{id}'")
 
     user = await db.users.find_one({"_id": object_id})
     if not user:
@@ -67,9 +67,10 @@ async def create_user(db: DbDep, created_user: UserCreateModel = Body(...)):
     """
     existing_user = await db.users.find_one({"email": created_user.email})
     if existing_user:
+        existing_user = UserModel(**existing_user) # kinda slow, but intuitive
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A user with this email already exists.",
+            detail=f"A user with this email already exists id={existing_user.id}.",
         )
     # Hash the password before inserting the user
     hashed_password = hash_password(created_user.password)
@@ -119,6 +120,26 @@ async def get_user_by_id(db: DbDep, id: str):
     Find one user record by id.
     """
     user = await find_user_by_id(db, id)
+    return UserResponseModel(**user)
+
+
+@router.get(
+    "/users/email/{email}",
+    response_description="Fetch a user by email",
+    response_model=UserResponseModel,
+    response_model_by_alias=False,
+    status_code=status.HTTP_200_OK,
+)
+async def get_user_by_email(
+    db: DbDep, email: str):
+    """
+    Find one user record by email (unique).
+    """
+    user = await db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(
+            status_code=404, detail=f"User not found with email={email}"
+        )
     return UserResponseModel(**user)
 
 
