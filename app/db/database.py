@@ -1,26 +1,15 @@
 import motor.motor_asyncio
 from typing import Annotated
-from dotenv import load_dotenv
 from fastapi import Depends
-import os
 import certifi
 import asyncio
-
-# Load environment variables from the .env file located in the project root
-# Gets route to project root
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-dotenv_path = os.path.join(project_root, ".env")
-load_dotenv(dotenv_path)
-
-# Connecting to database
-# NOTE: IP of connection MUST be added in MongoDB Atlas
-URI_KEY = os.getenv("MONGO_URI")
-PRODUCTION = True if os.getenv("PRODUCTION") == "true" else False
+from app.helpers.secrets import URI_KEY, PRODUCTION
 
 # Separate production and local database by name on the same cluster
 # 'local' is a reserved database name in mongodb, so we use 'dev' instead
 db_name = "production" if PRODUCTION else "dev"
 
+# NOTE: IP of connection MUST be added in MongoDB Atlas
 # Create an async MongoDB client
 client = motor.motor_asyncio.AsyncIOMotorClient(
     URI_KEY,

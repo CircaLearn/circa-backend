@@ -2,7 +2,7 @@ from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from app.helpers.similarity import compute_similarity
 from app.routes import concepts, users, auth
-from app.db.database import PRODUCTION
+from app.helpers.secrets import PRODUCTION
 
 
 app = FastAPI()
