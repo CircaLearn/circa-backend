@@ -6,7 +6,9 @@ from app.helpers.secrets import JWT_SECRET_KEY
 
 SECRET_KEY = JWT_SECRET_KEY
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 30 
+# TODO: implement a second longer JWT and a place to blacklist old JWTs in the
+# case of a "unlog all accounts"
 
 def hash_password(password: str) -> str:
     """

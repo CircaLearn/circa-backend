@@ -10,9 +10,9 @@ app = FastAPI()
 API_PREFIX = "/api/v1"
 
 if PRODUCTION:
-    origins = ["circalearn.net"]  # domain-to-be
+    origins = ["https://circalearn.net"]  # domain-to-be
 else:
-    origins = ["*"]
+    origins = ["http://localhost:3000"]
 
 app.add_middleware(
     CORSMiddleware,

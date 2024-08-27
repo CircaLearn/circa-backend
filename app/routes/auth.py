@@ -1,5 +1,6 @@
 from datetime import timedelta
 from app.routes.common_imports import *
+from fastapi import Response
 from fastapi.security import OAuth2PasswordRequestForm
 from app.models.models import UserModel, TokenData, Token
 from app.helpers.security import (
@@ -34,7 +35,6 @@ async def get_current_user(db: DbDep, token: Annotated[str, Depends(oauth2_schem
         headers={"WWW-Authenticate": "Bearer"},
     )
     user_id = decode_token(token)
-    print(user_id)
     # Ensure token contains ID
     if not user_id:
         raise credentials_exception
@@ -65,9 +65,10 @@ async def authenticate_user(db: DbDep, email: str, password: str):
 
 @router.post("/login", response_model=Token)
 async def login_for_access_token(
-    db: DbDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+    response: Response,
+    db: DbDep,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
-    # Fetch user from the database by 'username' = email
     user = await authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -77,10 +78,17 @@ async def login_for_access_token(
         )
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    # Encode user ID as JWT 'subject'
     access_token = create_access_token(
         data={"sub": user.id}, expires_delta=access_token_expires
     )
+
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+
     return Token(access_token=access_token, token_type="bearer")
 
 
