@@ -38,7 +38,7 @@ def root():
 
 
 @api_router.get("/compare/{ref}/{other}")
-def compare(ref: str, other: str):
+def compare_two_strings(ref: str, other: str):
     # Turn dashes "-" into spaces " "
     ref = " ".join(ref.split("-"))
     other = " ".join(other.split("-"))

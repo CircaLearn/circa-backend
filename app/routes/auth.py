@@ -12,7 +12,7 @@ from app.helpers.security import (
 from fastapi.security import OAuth2PasswordBearer
 
 # for swagger authentication in top right UI
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
 router = APIRouter()
 
@@ -34,6 +34,7 @@ async def get_current_user(db: DbDep, token: Annotated[str, Depends(oauth2_schem
         headers={"WWW-Authenticate": "Bearer"},
     )
     user_id = decode_token(token)
+    print(user_id)
     # Ensure token contains ID
     if not user_id:
         raise credentials_exception
@@ -62,14 +63,13 @@ async def authenticate_user(db: DbDep, email: str, password: str):
     return user
 
 
-@router.post("/token")
+@router.post("/login", response_model=Token)
 async def login_for_access_token(
     db: DbDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> Token:
     # Fetch user from the database by 'username' = email
     user = await authenticate_user(db, form_data.username, form_data.password)
     if not user:
-        # use dummy hash to avoid timing attacks
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
