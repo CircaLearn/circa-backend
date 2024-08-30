@@ -3,6 +3,10 @@ import jwt
 from jwt.exceptions import InvalidTokenError
 from datetime import datetime, timedelta, timezone
 from app.helpers.secrets import JWT_SECRET_KEY
+from fastapi import Request, HTTPException, status
+from app.db.database import DbDep
+from app.models.models import UserModel
+
 
 SECRET_KEY = JWT_SECRET_KEY
 ALGORITHM = "HS256"
@@ -72,8 +76,48 @@ def decode_token(token: str) -> str | None:
         return None
     return id
 
+# Removed oauth2scheme dependency, since I am no longer keeping track of login
+# sessions on the fastapi side. 
+# Rather, fastapi is an api that accepts requests and cookies and does what its 
+# asked to do with them, but doesn't care where its coming from really.
+async def get_current_user(db: DbDep, token: str):
+    """
+    Retrieves the current user based on the provided token.
+    Args:
+        db (DbDep): An injected database dependency used to retrieve user information.
+        token (str): The token used to authenticate the user.
+    Raises:
+        HTTPException: If the token is invalid or the user cannot be found in the database.
+    Returns:
+        UserModel: The user information corresponding to the provided token.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
-# TODO: create a general authentication dependency (verifies tokens and all)
-# that I can inject into all routes requiring authentication without ever having
-# to access properties of the injection (unlike DbDep, which I'll always have to
-# use inside the routes and can't just be injected in main.py)
+    user_id = decode_token(token)
+    if not user_id:
+        raise credentials_exception
+
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise credentials_exception
+
+    return UserModel(**user)
+
+
+# can be used as a depenency in routes to get the current user
+async def get_user_from_request(request: Request, db: DbDep):
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Call get_current_user with the token extracted from the cookie
+    user = await get_current_user(db=db, token=token)
+    return user

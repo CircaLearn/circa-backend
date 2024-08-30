@@ -2,50 +2,20 @@ from datetime import timedelta
 from app.routes.common_imports import *
 from fastapi import Response
 from fastapi.security import OAuth2PasswordRequestForm
-from app.models.models import UserModel, TokenData, Token
+from app.models.models import UserModel, Token
 from app.helpers.security import (
     hash_password,
     verify_password,
-    decode_token,
     create_access_token,
     ACCESS_TOKEN_EXPIRE_MINUTES,
+    get_current_user,
 )
-from fastapi.security import OAuth2PasswordBearer
+# from fastapi.security import OAuth2PasswordBearer
 
-# for swagger authentication in top right UI
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
+# # for swagger authentication in top right UI
+# oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
 router = APIRouter()
-
-
-async def get_current_user(db: DbDep, token: Annotated[str, Depends(oauth2_scheme)]):
-    """
-    Retrieves the current user based on the provided token.
-    Args:
-        db (DbDep): An injected database dependency used to retrieve user information.
-        token (Annotated[str, Depends(oauth2_scheme)]): The token used to authenticate the user.
-    Raises:
-        HTTPException: If the token is invalid or the user cannot be found in the database.
-    Returns:
-        UserModel: The user information corresponding to the provided token.
-    """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    user_id = decode_token(token)
-    # Ensure token contains ID
-    if not user_id:
-        raise credentials_exception
-
-    token_data = TokenData(id=user_id)
-    # Use id when comparing to str, and _id when comparing to ObjectId
-    user = await db.users.find_one({"id": token_data.id})
-    if not user:
-        raise credentials_exception
-
-    return UserModel(**user)
 
 
 async def authenticate_user(db: DbDep, email: str, password: str):
