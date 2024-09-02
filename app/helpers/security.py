@@ -3,9 +3,11 @@ import jwt
 from jwt.exceptions import InvalidTokenError
 from datetime import datetime, timedelta, timezone
 from app.helpers.secrets import JWT_SECRET_KEY
-from fastapi import Request, HTTPException, status
+from fastapi import Request, HTTPException, status, Depends
 from app.db.database import DbDep
 from app.models.models import UserModel
+from typing import Annotated
+from bson import ObjectId
 
 
 SECRET_KEY = JWT_SECRET_KEY
@@ -94,15 +96,17 @@ async def get_current_user(db: DbDep, token: str):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
     )
 
     user_id = decode_token(token)
     if not user_id:
         raise credentials_exception
 
-    user = await db.users.find_one({"id": user_id})
+    # always convert to ObjectID when finding by _id, as that's how its
+    # always stored in MongoDB
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
     if not user:
+        print("User not found")
         raise credentials_exception
 
     return UserModel(**user)
@@ -112,12 +116,14 @@ async def get_current_user(db: DbDep, token: str):
 async def get_user_from_request(request: Request, db: DbDep):
     token = request.cookies.get("access_token")
     if not token:
+        print("No token sent")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
         )
 
     # Call get_current_user with the token extracted from the cookie
     user = await get_current_user(db=db, token=token)
     return user
+
+userDep = Annotated[UserModel, Depends(get_user_from_request)]

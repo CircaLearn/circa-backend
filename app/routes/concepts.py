@@ -1,6 +1,7 @@
 from app.models.models import ConceptModel, UpdateConceptModel
 from app.routes.common_imports import *
 from app.helpers.similarity import calculate_normalized_embeddings, tensor_to_list
+from app.helpers.security import userDep
 from typing import List
 
 
@@ -26,7 +27,7 @@ async def find_concept_by_id(db: DbDep, id: str):
 
 @router.post(
     "/concepts",
-    response_description="Insert new concept",
+    response_description="Insert new concept on their user id",
     status_code=status.HTTP_201_CREATED,
     # can return either ConceptModel(**created_concept) or created_concept, as
     # specifying response_model as ConceptModel lets FastAPI know what to expect
@@ -34,19 +35,20 @@ async def find_concept_by_id(db: DbDep, id: str):
     response_model_by_alias=False,
 )
 async def add_concept(
-    db : DbDep, concept: ConceptModel = Body(...)
+    db: DbDep,
+    cur_user: userDep,
+    concept: ConceptModel = Body(...),
 ):
     """
     Insert a concept record (id ignored) and return it.
     A unique `id` will be created.
     """
-    # returns InsertOneResult, which has inserted_id attribute
-    # exclude "id" so MongoDB can create its own
-    new_concept = await db.concepts.insert_one(
-        concept.model_dump(by_alias=True, exclude=["id"])
+    new_concept = concept.model_dump(by_alias=True, exclude="id")
+    new_concept["user_id"] = cur_user.id
+    await db.concepts.insert_one(
+        new_concept
     )
-    created_concept = await db.concepts.find_one({"_id": new_concept.inserted_id})
-    return created_concept
+    return new_concept
 
 
 @router.get(

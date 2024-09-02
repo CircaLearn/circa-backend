@@ -16,7 +16,9 @@ class ConceptModel(BaseModel):
     """
 
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
-    user_id: PyObjectId
+    # user_id os optional so concept can be sent without user_id, as user_id 
+    # is grabbed in backend anyway
+    user_id: Optional[PyObjectId] = None 
     name: str  # Required field
     usage: str  # Required field
     date_created: Annotated[datetime, Field(default_factory=datetime.now)]
