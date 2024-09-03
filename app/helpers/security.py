@@ -116,7 +116,6 @@ async def get_current_user(db: DbDep, token: str):
 async def get_user_from_request(request: Request, db: DbDep):
     token = request.cookies.get("access_token")
     if not token:
-        print("No token sent")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",

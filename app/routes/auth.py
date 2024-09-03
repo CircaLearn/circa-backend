@@ -7,7 +7,7 @@ from app.helpers.security import (
     verify_password,
     create_access_token,
     ACCESS_TOKEN_EXPIRE_MINUTES,
-    get_current_user,
+    userDep
 )
 from app.helpers.secrets import PRODUCTION
 
@@ -61,3 +61,19 @@ async def login_for_access_token(
     )
 
     return Token(access_token=access_token, token_type="bearer")
+
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+async def logout(response: Response):
+    response.delete_cookie(key="access_token", path="/")
+    return {"status": "Logout successful"}
+
+
+
+@router.post("/verify")
+async def verify_logged_in(cur_user : userDep):
+    if cur_user:
+        print(type(cur_user.id), cur_user.id)
+        return cur_user.id
+    # HTTPException is naturally raised if no token provided through userDep
+    
